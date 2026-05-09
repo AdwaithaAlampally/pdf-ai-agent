@@ -1,66 +1,45 @@
 import streamlit as st
 from pypdf import PdfReader
-import ollama
+from groq import Groq
 
-# --------------------------------
-# PAGE TITLE
-# --------------------------------
 st.title("📄 AI PDF Summarizer Agent")
 
-st.write("Upload a PDF and get an AI-generated summary using TinyLlama.")
+st.write("Upload a PDF and get an AI-generated summary.")
 
-# --------------------------------
-# FILE UPLOAD
-# --------------------------------
-uploaded_file = st.file_uploader(
-    "Upload your PDF",
-    type=["pdf"]
-)
+client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-# --------------------------------
-# WHEN FILE IS UPLOADED
-# --------------------------------
+uploaded_file = st.file_uploader("Upload your PDF", type=["pdf"])
+
 if uploaded_file is not None:
-
     st.success("PDF uploaded successfully!")
 
-    # Read PDF
     reader = PdfReader(uploaded_file)
-
     full_text = ""
 
-    # Extract text from all pages
     for page in reader.pages:
         text = page.extract_text()
-
         if text:
             full_text += text + "\n"
 
     st.write("✅ Text Extracted")
-
-    # Show text length
     st.write(f"Total Characters: {len(full_text)}")
 
-    # Small chunk for TinyLlama
-    chunk = full_text[:3000]
+    chunk = full_text[:12000]
 
-    # Button
     if st.button("Generate Summary"):
+        with st.spinner("AI is summarizing..."):
 
-        with st.spinner("TinyLlama is summarizing..."):
-
-            response = ollama.chat(
-                model="tinyllama",
+            response = client.chat.completions.create(
+                model="llama-3.1-8b-instant",
                 messages=[
                     {
                         "role": "user",
-                        "content": f"Summarize this PDF:\n\n{chunk}"
+                        "content": f"Summarize this PDF clearly:\n\n{chunk}"
                     }
                 ]
             )
 
-            summary = response["message"]["content"]
+            summary = response.choices[0].message.content
 
-        st.subheader("📌 Summary")
-
-        st.write(summary)
+        st.subheader("Summary")
+        st.write(summary) 
